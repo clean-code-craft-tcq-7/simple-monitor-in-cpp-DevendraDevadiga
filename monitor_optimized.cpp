@@ -3,24 +3,27 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include <string>
 
 using std::cout, std::endl;
 using std::flush;
 using std::this_thread::sleep_for;
 using std::chrono::seconds;
 
+// Constants
 constexpr int BLINK_COUNT = 6;
 constexpr int BLINK_INTERVAL_SEC = 1;
 
+// Vital definition
 struct Vital {
     const char* name;
     float value;
     float min;
     float max;
-    bool onlyLowerBound;  // true if only min is checked
+    bool onlyLowerBound;  // true = check only min, false = check min & max
 };
 
-// Warning blink animation
+// Blink warning pattern
 void blinkWarning() {
     for (int i = 0; i < BLINK_COUNT; ++i) {
         cout << "\r* " << flush;
@@ -31,25 +34,31 @@ void blinkWarning() {
     cout << endl;
 }
 
-// Print alert message + blinking
+// Show message and blink
 int alertAndBlink(const char* message) {
     cout << message << endl;
     blinkWarning();
     return 0;
 }
 
-// Check if a vital is in range
+// Extracted logic to reduce CCN
+bool isVitalOutOfRange(const Vital& v) {
+    if (v.onlyLowerBound) {
+        return v.value < v.min;
+    }
+    return v.value < v.min || v.value > v.max;
+}
+
+// Check and handle vital
 int checkVital(const Vital& vital) {
-    bool outOfRange = vital.onlyLowerBound
-                      ? (vital.value < vital.min)
-                      : (vital.value < vital.min || vital.value > vital.max);
-    if (outOfRange) {
-        return alertAndBlink((std::string(vital.name) + " is out of range!").c_str());
+    if (isVitalOutOfRange(vital)) {
+        std::string msg = std::string(vital.name) + " is out of range!";
+        return alertAndBlink(msg.c_str());
     }
     return 1;
 }
 
-// Master function to verify all vitals
+// Master checker function
 int vitalsOk(float temperature, float pulseRate, float spo2) {
     Vital vitals[] = {
         {"Temperature",        temperature, 95.0f, 102.0f, false},
