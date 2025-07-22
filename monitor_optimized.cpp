@@ -9,7 +9,7 @@ using std::flush;
 using std::this_thread::sleep_for;
 using std::chrono::seconds;
 
-// Vital thresholds
+// Vital sign thresholds
 constexpr float TEMP_LOW = 95.0f;
 constexpr float TEMP_HIGH = 102.0f;
 constexpr float PULSE_LOW = 60.0f;
@@ -19,7 +19,7 @@ constexpr float SPO2_MIN = 90.0f;
 constexpr int BLINK_COUNT = 6;
 constexpr int BLINK_INTERVAL_SEC = 1;
 
-// Blinking warning indicator
+// Blink indicator for alerts
 void blinkWarning() {
     for (int i = 0; i < BLINK_COUNT; ++i) {
         cout << "\r* " << flush;
@@ -30,25 +30,24 @@ void blinkWarning() {
     cout << endl;
 }
 
-// Alert printer + blinker
-bool alertAndBlink(const char* message) {
+// Show warning and blink
+int alertAndBlink(const char* message) {
     cout << message << endl;
     blinkWarning();
-    return false;
+    return 0;
 }
 
-// Generic range checker for vitals
+// Range check helpers
 bool isOutOfRange(float value, float min, float max) {
     return value < min || value > max;
 }
 
-// SPO2 is only lower-bounded
 bool isBelowThreshold(float value, float min) {
     return value < min;
 }
 
-// Main vitals check
-bool vitalsOk(float temperature, float pulseRate, float spo2) {
+// Check all vitals
+int vitalsOk(float temperature, float pulseRate, float spo2) {
     if (isOutOfRange(temperature, TEMP_LOW, TEMP_HIGH)) {
         return alertAndBlink("Temperature is out of range!");
     }
@@ -61,5 +60,5 @@ bool vitalsOk(float temperature, float pulseRate, float spo2) {
         return alertAndBlink("Oxygen saturation is too low!");
     }
 
-    return true;
+    return 1; // All vitals are OK
 }
