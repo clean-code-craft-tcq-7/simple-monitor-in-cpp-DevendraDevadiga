@@ -4,9 +4,12 @@
 #include <chrono>
 #include <iostream>
 
-using std::cout, std::flush, std::this_thread::sleep_for, std::chrono::seconds;
+using std::cout, std::endl;
+using std::flush;
+using std::this_thread::sleep_for;
+using std::chrono::seconds;
 
-// Constants for vital thresholds
+// Vital thresholds
 constexpr float TEMP_LOW = 95.0f;
 constexpr float TEMP_HIGH = 102.0f;
 constexpr float PULSE_LOW = 60.0f;
@@ -16,6 +19,7 @@ constexpr float SPO2_MIN = 90.0f;
 constexpr int BLINK_COUNT = 6;
 constexpr int BLINK_INTERVAL_SEC = 1;
 
+// Blinking warning indicator
 void blinkWarning() {
     for (int i = 0; i < BLINK_COUNT; ++i) {
         cout << "\r* " << flush;
@@ -23,26 +27,39 @@ void blinkWarning() {
         cout << "\r *" << flush;
         sleep_for(seconds(BLINK_INTERVAL_SEC));
     }
+    cout << endl;
 }
 
-int vitalsOk(float temperature, float pulseRate, float spo2) {
-    if (temperature < TEMP_LOW || temperature > TEMP_HIGH) {
-        cout << "Temperature is critical!\n";
-        blinkWarning();
-        return 0;
+// Alert printer + blinker
+bool alertAndBlink(const char* message) {
+    cout << message << endl;
+    blinkWarning();
+    return false;
+}
+
+// Generic range checker for vitals
+bool isOutOfRange(float value, float min, float max) {
+    return value < min || value > max;
+}
+
+// SPO2 is only lower-bounded
+bool isBelowThreshold(float value, float min) {
+    return value < min;
+}
+
+// Main vitals check
+bool vitalsOk(float temperature, float pulseRate, float spo2) {
+    if (isOutOfRange(temperature, TEMP_LOW, TEMP_HIGH)) {
+        return alertAndBlink("Temperature is out of range!");
     }
 
-    if (pulseRate < PULSE_LOW || pulseRate > PULSE_HIGH) {
-        cout << "Pulse Rate is out of range!\n";
-        blinkWarning();
-        return 0;
+    if (isOutOfRange(pulseRate, PULSE_LOW, PULSE_HIGH)) {
+        return alertAndBlink("Pulse rate is out of range!");
     }
 
-    if (spo2 < SPO2_MIN) {
-        cout << "Oxygen Saturation out of range!\n";
-        blinkWarning();
-        return 0;
+    if (isBelowThreshold(spo2, SPO2_MIN)) {
+        return alertAndBlink("Oxygen saturation is too low!");
     }
 
-    return 1;
+    return true;
 }
