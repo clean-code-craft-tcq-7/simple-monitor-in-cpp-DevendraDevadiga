@@ -9,17 +9,18 @@ using std::flush;
 using std::this_thread::sleep_for;
 using std::chrono::seconds;
 
-// Vital sign thresholds
-constexpr float TEMP_LOW = 95.0f;
-constexpr float TEMP_HIGH = 102.0f;
-constexpr float PULSE_LOW = 60.0f;
-constexpr float PULSE_HIGH = 100.0f;
-constexpr float SPO2_MIN = 90.0f;
-
 constexpr int BLINK_COUNT = 6;
 constexpr int BLINK_INTERVAL_SEC = 1;
 
-// Blink indicator for alerts
+struct Vital {
+    const char* name;
+    float value;
+    float min;
+    float max;
+    bool onlyLowerBound;  // true if only min is checked
+};
+
+// Warning blink animation
 void blinkWarning() {
     for (int i = 0; i < BLINK_COUNT; ++i) {
         cout << "\r* " << flush;
@@ -30,35 +31,36 @@ void blinkWarning() {
     cout << endl;
 }
 
-// Show warning and blink
+// Print alert message + blinking
 int alertAndBlink(const char* message) {
     cout << message << endl;
     blinkWarning();
     return 0;
 }
 
-// Range check helpers
-bool isOutOfRange(float value, float min, float max) {
-    return value < min || value > max;
+// Check if a vital is in range
+int checkVital(const Vital& vital) {
+    bool outOfRange = vital.onlyLowerBound
+                      ? (vital.value < vital.min)
+                      : (vital.value < vital.min || vital.value > vital.max);
+    if (outOfRange) {
+        return alertAndBlink((std::string(vital.name) + " is out of range!").c_str());
+    }
+    return 1;
 }
 
-bool isBelowThreshold(float value, float min) {
-    return value < min;
-}
-
-// Check all vitals
+// Master function to verify all vitals
 int vitalsOk(float temperature, float pulseRate, float spo2) {
-    if (isOutOfRange(temperature, TEMP_LOW, TEMP_HIGH)) {
-        return alertAndBlink("Temperature is out of range!");
-    }
+    Vital vitals[] = {
+        {"Temperature",        temperature, 95.0f, 102.0f, false},
+        {"Pulse rate",         pulseRate,   60.0f, 100.0f, false},
+        {"Oxygen saturation",  spo2,        90.0f, 0.0f,   true}
+    };
 
-    if (isOutOfRange(pulseRate, PULSE_LOW, PULSE_HIGH)) {
-        return alertAndBlink("Pulse rate is out of range!");
+    for (const auto& vital : vitals) {
+        if (!checkVital(vital)) {
+            return 0;
+        }
     }
-
-    if (isBelowThreshold(spo2, SPO2_MIN)) {
-        return alertAndBlink("Oxygen saturation is too low!");
-    }
-
-    return 1; // All vitals are OK
+    return 1;
 }
